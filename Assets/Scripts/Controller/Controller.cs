@@ -5,9 +5,9 @@ public class Controller : MonoBehaviour
 {
     [SerializeField] private GameManager gameManager;
     [SerializeField] private View view;
-    public int[] RollDice() 
+    private void Start()
     {
-        return gameManager.RollDice();
+        RollDice();
     }
     public void ChooseDice(int diceIndex)
     {
@@ -15,8 +15,16 @@ public class Controller : MonoBehaviour
     }
     public void ChooseCol(int colIndex)
     {
-        gameManager.ChooseCol(colIndex);
+        if (gameManager.TryPlaceDice(colIndex))
+        {
+            RollDice();
+        }
     }
-    
+
+    private void RollDice()
+    {
+        int[] dice = gameManager.RollDice();
+        view.ShowRolledDice(dice);
+    }
 
 }

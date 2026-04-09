@@ -3,11 +3,11 @@ using System;
 
 public class Model
 {
-    public event Action<int, int, int, int> OnGridUpdated; // params: gridIndex, row, col, diceValue 
+    public event Action<int, int, int> OnGridUpdated; // params: row, col, diceValue 
 
     public int[,] grid = new int [3, 3];
 
-    public int gridIndex; // TODO: assign!!!
+    public int gridIndex; 
 
     public Model(int gridIndex)
     {
@@ -16,14 +16,14 @@ public class Model
 
     public bool TryAddNewDice(int diceValue,int col)
     {   
-        for (int i = 0; i < grid.GetLength(0); i++)
+        for (int row = 0; row < grid.GetLength(0); row++)
         {
-            if (grid[i, col] == 0)
+            if (grid[row, col] == 0)
             {
-                grid[i, col] = diceValue;  
+                grid[row, col] = diceValue;  
 
-                Debug.Log("A new dice have been added: "+diceValue+" as value , on row and col"+ i +" , " + col);
-                OnGridUpdated?.Invoke(gridIndex, i, col, diceValue);
+                Debug.Log("A new dice have been added: "+diceValue+" as value , on row and col"+ row +" , " + col);
+                OnGridUpdated?.Invoke(row, col, diceValue);
                 CalculateGridScore();
                 return true;
             }
@@ -77,14 +77,12 @@ public class Model
 
     public void TryRemoveNumber(int col, int number)
     {
-        for (int i = 0; i < grid.GetLength(0); i++)
+        for (int row = 0; row < grid.GetLength(0); row++)
         {
-            if (grid[i, col] == number)
+            if (grid[row, col] == number)
             {
-                grid[i, col] = 0;
-                // TODO: invoke event
-                // (See TicTacToe example for how to deal with spawning / despawning prefabs)
-                OnGridUpdated?.Invoke(gridIndex, i, col, 0); 
+                grid[row, col] = 0;
+                OnGridUpdated?.Invoke(row, col, 0); 
             }
         }
         CalculateGridScore();

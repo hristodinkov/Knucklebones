@@ -12,47 +12,57 @@ public class View : MonoBehaviour
 
     private int[] diceValueArray;
 
-    private void Start()
-    {   
-        ShowRolledDice();
+    private void Awake()
+    {
+        diceValueArray = new int[2];
     }
 
-    private void ShowRolledDice()
+    public void ShowRolledDice(int[] diceValues)
     {
-        diceValueArray = controller.RollDice();
+        diceValueArray = diceValues;
+        foreach (Transform item in rolledDiceTransform)
+        {
+            if (item.childCount > 0)
+            {
+                Destroy(item.GetChild(0).gameObject);
+            }
+        }
         for (int i = 0; i < diceValueArray.Length; i++)
         {
             int diceValue = diceValueArray[i];
-            GameObject dice = Instantiate(dicePrefabs[diceValue - 1], rolledDiceTransform[i].position, dicePrefabs[diceValue - 1].transform.rotation, rolledDiceTransform[i]);
+            GameObject dice = Instantiate(dicePrefabs[diceValue - 1], rolledDiceTransform[i]);
             dice.GetComponent<Selectable>().index = i + 1; 
+            dice.GetComponent<Selectable>().isDice = true;
         }
     }
 
-    public void UpdateGrid(int gridIndex, int row, int col, int diceValue)
+    public void RenderCell(LocalClientModel client, int row, int col)
     {
-        GridTransform grid;
-        if(gridIndex == 1)
+        int value = client.values[row, col];
+        Transform cell = GetCellTransform(client, row, col);
+
+        if (client.diceObjects[row, col] != null)
         {
-            grid = player1Grid;       
+            Destroy(client.diceObjects[row, col]);
+            client.diceObjects[row, col] = null;
         }
-        else 
+
+        if (value > 0)
         {
-            grid=player2Grid;
+            GameObject die = Instantiate(dicePrefabs[value - 1], cell);
+            Selectable selectable = die.GetComponent<Selectable>();
+            if(selectable != null)
+            {
+                selectable.enabled = false;
+            }
+            client.diceObjects[row, col] = die;
         }
-        Transform cellTransform = grid.cols[col].rows[row];
-        if(cellTransform.childCount > 0)
-        {
-            print("A dice on " + cellTransform + " position with a value " + diceValue + " has been deleted from " + grid.name + " grid.");
-            Destroy(cellTransform.GetChild(0).gameObject);
-        }
-        if(diceValue > 0)
-        {
-            print("A dice on "+cellTransform+" position with a value "+diceValue+" has been added to "+ grid.name+" grid.");
-            GameObject die =Instantiate(dicePrefabs[diceValue - 1], cellTransform);
-            die.GetComponent<Selectable>().enabled = false;
-        }
-        ShowRolledDice();
     }
-    
-    
+    private Transform GetCellTransform(LocalClientModel client, int row, int col)
+    {
+        if (client is Player1ClientModel)
+            return player1Grid.cols[col].rows[row];
+
+        return player2Grid.cols[col].rows[row];
+    }
 }

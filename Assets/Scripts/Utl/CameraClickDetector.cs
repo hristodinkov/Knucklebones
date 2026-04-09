@@ -16,7 +16,11 @@ public class CameraClickDetector : MonoBehaviour
             {
                 if(hit.collider.gameObject.TryGetComponent(out Selectable selectable))
                 {
-                    selectable.OnPointerClick();
+                    if (selectable.enabled)
+                    {
+                        selectable.OnPointerClick();
+                    }
+                   
                 }
             }
         }

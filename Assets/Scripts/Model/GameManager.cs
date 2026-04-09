@@ -8,30 +8,28 @@ public class GameManager : MonoBehaviour
     public Model player1Data = new Model(1);
     public Model player2Data = new Model(2);
 
+    [SerializeField] private View view;
+    [SerializeField] private Controller controller;
+
     private bool turnOrder =true;
 
     private int selectedDiceValue;
-
     private int diceValue1;
     private int diceValue2;
 
-    [SerializeField] private Controller controller;
-    [SerializeField] private View view;
-    
+    private Player1ClientModel p1Client;
+    private Player2ClientModel p2Client;
+
+    private Player1ViewModel p1ViewModel;
+    private Player2ViewModel p2ViewModel;
+
     private void Start()
     {
-        player1Data.OnGridUpdated+=view.UpdateGrid;
-        player2Data.OnGridUpdated+=view.UpdateGrid;
-    }
-    private void Update()
-    {
-        //ConsoleTest();
+        p1Client = new Player1ClientModel();
+        p2Client = new Player2ClientModel();
 
-    }
-    private void OnDestroy()
-    {
-        player1Data.OnGridUpdated-=view.UpdateGrid;
-        player2Data.OnGridUpdated-=view.UpdateGrid; 
+        p1ViewModel = new Player1ViewModel(player1Data, p1Client, view);
+        p2ViewModel = new Player2ViewModel(player2Data, p2Client, view);
     }
 
     public int[] RollDice()
@@ -55,38 +53,44 @@ public class GameManager : MonoBehaviour
         print("You selected " + selectedDiceValue + "\nNow select which col you want to put your die. First is A, second S and third D");
     }
 
-    public void ChooseCol(int selectedCol)
+    public bool TryPlaceDice(int selectedCol)
     {
         if (selectedDiceValue == 0)
         {
             Debug.LogWarning("Please select a die!");
-            return;
+            return false;
         }
+
+        Model add;
+        Model remove;
         if (turnOrder)
         {
-            PlaceDice(player1Data, player2Data,selectedCol);
+            add = player1Data;
+            remove = player2Data;
         }
         else
         {
-            PlaceDice(player2Data, player1Data,selectedCol);
+            add = player2Data;
+            remove = player1Data;
         }
-    }
 
-    private void PlaceDice(Model gridForAdd, Model gridForRemove,int selectedCol)
-    {
-        bool succeed = gridForAdd.TryAddNewDice(selectedDiceValue, selectedCol);
+        bool succeed = add.TryAddNewDice(selectedDiceValue, selectedCol);
         if (!succeed)
         {
             Debug.LogWarning("Col full. Try another one.");
-            return;
+            return false;
         }
-        gridForRemove.TryRemoveNumber(selectedCol, selectedDiceValue);
+
+        remove.TryRemoveNumber(selectedCol, selectedDiceValue);
+
         print("Player 1 has " + player1Data.CalculateGridScore() + " points");
         print("Player2 has " + player2Data.CalculateGridScore() + " points");
         player1Data.PrintGrid();
         player2Data.PrintGrid();
+
         selectedDiceValue = 0;
         turnOrder = !turnOrder;
+        return true;
     }
 
     #region ConsoleTest
