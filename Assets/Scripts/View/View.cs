@@ -65,4 +65,13 @@ public class View : MonoBehaviour
 
         return player2Grid.cols[col].rows[row];
     }
+
+    public void Initialize(Client client)
+    {
+        client.OnDiceRolled += (d1, d2) =>
+        {
+            ShowRolledDice(new int[] { d1, d2 });
+        };
+    }
+
 }
