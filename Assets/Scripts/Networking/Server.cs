@@ -14,6 +14,9 @@ using UnityEngine;
 /// </summary>
 public class Server : MonoBehaviour
 {
+    // ----- Debugging
+    [SerializeField] private bool showDebugMessages = true;
+
 	// ----- General server code:
 	TcpListener listener;
 	List<TcpNetworkConnection> connections;
@@ -26,8 +29,8 @@ public class Server : MonoBehaviour
 	private bool turnorder;
 	private int dice1, dice2;
 	private Dictionary<TcpNetworkConnection, int> playerIDs = new Dictionary<TcpNetworkConnection, int>();
-    private int selectedDiceP1;
-    private int selectedDiceP2;
+    private int selectedDiceP1 =-1;
+    private int selectedDiceP2 =-1;
 
     void Start()
     {
@@ -36,7 +39,7 @@ public class Server : MonoBehaviour
 		turnorder = true;
         // This server starts with a listener:
         int port = 50006;
-		Debug.Log("Starting server at " + port);
+		Log("Starting server at " + port );
 		listener = new TcpListener(IPAddress.Any, port);
 		listener.Start();
 
@@ -46,7 +49,6 @@ public class Server : MonoBehaviour
 		dispatcher = new OSCDispatcher();
 		dispatcher.ShowIncomingMessages = true;
 		Initialize();
-        RollDice();
     }
 
     void Update()
@@ -63,7 +65,7 @@ public class Server : MonoBehaviour
 			TcpClient client = listener.AcceptTcpClient();
 			TcpNetworkConnection connection = new TcpNetworkConnection(client);
 			connections.Add(connection);
-			Debug.Log("Server: Adding new connection from " + connection.Remote);
+			Log("Server: Adding new connection from " + connection.Remote);
 			ClientJoined(connection);
 		}
 	}
@@ -84,7 +86,7 @@ public class Server : MonoBehaviour
         }
 		else
 		{
-			Debug.Log("Sorry - already have 2 players");
+			Log("Sorry - already have 2 players");
 			// Note: this client is still allowed to join as spectator, but not as player!
 			// TODO: Send a message to this client
 		}
@@ -101,7 +103,7 @@ public class Server : MonoBehaviour
 
 	void HandlePacket(byte[] packet, IPEndPoint remote) {
 		OSCMessageIn mess = new OSCMessageIn(packet);
-		Debug.Log("Message arrives on server: " + mess);
+		Log("Message arrives on server: " + mess);
 
 		dispatcher.HandlePacket(packet, remote);
 	}
@@ -144,11 +146,8 @@ public class Server : MonoBehaviour
         // Subscribe listeners for incoming messages:
         // The (optional) list of parameter types (OSCUtil.INT) lets the dispatcher filter
         //  messages that do not satisfy the expected signature (=parameter list):
-        //dispatcher.AddListener("/ChooseSteps", ChooseStepsRpc);
-        //dispatcher.AddListener("/NextRound", NextRoundIncoming);
-        //dispatcher.AddListener("/ChoiceReveal", ChoiceRevealIncoming, OSCUtil.INT, OSCUtil.INT);
-        //dispatcher.AddListener("/Move", MoveIncoming, OSCUtil.INT, OSCUtil.INT);
-        //dispatcher.AddListener("/Win", WinIncoming, OSCUtil.INT);
+
+
 
         dispatcher.AddListener("/ChooseDice", ChooseDiceRpc, OSCUtil.INT);
         dispatcher.AddListener("/ChooseColumn", ChooseColumnRpc, OSCUtil.INT);
@@ -176,7 +175,7 @@ public class Server : MonoBehaviour
         }
         if (player != expectedPlayer)
         {
-            Debug.Log($"Server: Player {player} tried to move out of turn.");
+            Log($"Server: Player {player} tried to move out of turn.");
             return;
         }
         int selected;
@@ -195,13 +194,38 @@ public class Server : MonoBehaviour
             add = p2Model;
             remove = p1Model;
         }
+        if(selected==-1)
+        {
+            Log($"Server: Player {player} has not selected a dice.");
+            return;
+        }
 
         bool success = add.TryAddNewDice(selected, col);
         if (!success) return;
 
         remove.TryRemoveNumber(col, selected);
 
+        if (player == 0)
+        {
+            selectedDiceP1 = -1;
+        }
+        else 
+        { 
+            selectedDiceP2 = -1; 
+        }
+
+
         BroadcastGridUpdate(player, col);
+        int opponent;
+        if(player == 1)
+        {
+            opponent = 0;
+        }
+        else
+        {
+            opponent = 1;
+        }
+        BroadcastGridUpdate(opponent, col);
         BroadcastScoreUpdate();
 
         turnorder = !turnorder;
@@ -216,6 +240,7 @@ public class Server : MonoBehaviour
 
     void ChooseDiceRpc(OSCMessageIn msg, IPEndPoint remote)
     {
+        Log($"Server: message arrives on server: {msg.ToString()} - diceIndex");
         int diceIndex = msg.ReadInt(); // 0 or 1
         int player = GetPlayerID(remote);
 
@@ -241,10 +266,11 @@ public class Server : MonoBehaviour
             selectedDiceP2 = chosenValue;
         }
 
-        Debug.Log($"Server: Player {player} selected dice index {diceIndex} with value {chosenValue}");
+        Log($"Server: Player {player} selected dice index {diceIndex} with value {chosenValue}");
     }
     void ChooseColumnRpc(OSCMessageIn msg, IPEndPoint remote)
     {
+        Log($"Server: message arrives on server: {msg.ToString()} - col");
         int col = msg.ReadInt();
         int player = GetPlayerID(remote);
 
@@ -327,4 +353,11 @@ public class Server : MonoBehaviour
 			conn.Send(packet);
 		}
 	}
+
+    private void Log( string message)
+    {
+        if (showDebugMessages) {
+            Debug.Log(message);
+        }
+    }
 }

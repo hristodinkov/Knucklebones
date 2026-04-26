@@ -24,8 +24,6 @@ public class Client : MonoBehaviour
     public event Action<int, int> OnScoreUpdated;
     public event Action<int> OnTurnChanged;
 
-
-
     void Start()
     {
 		TcpClient client = new TcpClient();
@@ -74,8 +72,7 @@ public class Client : MonoBehaviour
 
 	void Initialize() {
         // The (optional) list of parameter types (OSCUtil.INT) lets the dispatcher filter
-        //  messages that do not satisfy the expected signature (=parameter list):
-        //dispatcher.AddListener("/CellChange", CellChangeRpc, OSCUtil.INT, OSCUtil.INT, OSCUtil.INT); 
+        //  messages that do not satisfy the expected signature (=parameter list): 
         //dispatcher.AddListener("/ActivePlayer", ActivePlayerChangeRpc, OSCUtil.INT);
         //dispatcher.AddListener("/GameOver", GameOverRpc, OSCUtil.INT);
         dispatcher.AddListener("/PlayerInfo", PlayerInfoRpc, OSCUtil.INT);
@@ -102,6 +99,7 @@ public class Client : MonoBehaviour
         int col = msg.ReadInt();
         int value = msg.ReadInt();
 
+        Debug.Log($"GridUpdatedRpc: {player} -> [{col},{row}] = {value}" );
         OnGridUpdated?.Invoke(player, row, col, value);
     }
 
@@ -118,17 +116,6 @@ public class Client : MonoBehaviour
         OnTurnChanged?.Invoke(currentPlayer);
     }
 
-
-    //void CellChangeRpc(OSCMessageIn message, IPEndPoint remote) {
-    //	int row = message.ReadInt();
-    //	int col = message.ReadInt();
-    //	int value = message.ReadInt();
-    //	OnCellChange?.Invoke(row, col, value);
-    //}
-    //void ActivePlayerChangeRpc(OSCMessageIn message, IPEndPoint remote) {
-    //	int activePlayer = message.ReadInt();
-    //	OnActivePlayerChange?.Invoke(activePlayer);
-    //}
     //void GameOverRpc(OSCMessageIn message, IPEndPoint remote) {
     //	int winner = message.ReadInt();
     //	OnGameOver?.Invoke(winner);

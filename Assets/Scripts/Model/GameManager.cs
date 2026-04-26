@@ -5,7 +5,6 @@ using UnityEngine.InputSystem;
 
 public class GameManager : MonoBehaviour
 {
-
     [SerializeField] private View view;
     [SerializeField] private Client client;
 
