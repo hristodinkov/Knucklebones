@@ -22,7 +22,7 @@ public class Model
             {
                 grid[row, col] = diceValue;  
 
-                Debug.Log("A new dice have been added: "+diceValue+" as value , on row and col"+ row +" , " + col);
+                Debug.Log("Model: A new dice have been added: "+diceValue+" as value , on row and col"+ row +" , " + col+ "on a grid: "+gridIndex);
                 OnGridUpdated?.Invoke(row, col, diceValue);
                 CalculateGridScore();
                 return true;

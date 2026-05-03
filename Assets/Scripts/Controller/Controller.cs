@@ -6,6 +6,7 @@ public class Controller : MonoBehaviour
     [SerializeField] private GameManager gameManager;
     [SerializeField] private Client client;
     [SerializeField] private View view;
+    [SerializeField] private UIView uIView;
     private void Start()
     {
         //RollDice();
@@ -30,6 +31,10 @@ public class Controller : MonoBehaviour
     public void ChooseCol(int colIndex)
     {
         client.SendChooseColumn(colIndex);
+    }
+    public void SendRematchRequest()
+    {
+        client.SendRematchRequest();
     }
 
     //private void RollDice()

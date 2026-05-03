@@ -16,13 +16,19 @@ public class Client : MonoBehaviour
 	TcpNetworkConnection connection;
 	OSCDispatcher dispatcher;
 
+    public LocalClientModel p1Model = new LocalClientModel();
+    public LocalClientModel p2Model = new LocalClientModel();
 
-	public event System.Action<int> OnPlayerInfoReceived;
+
+    public event System.Action<int> OnPlayerInfoReceived;
 
     public event Action<int, int> OnDiceRolled;
     public event Action<int, int, int,int> OnGridUpdated;
     public event Action<int, int> OnScoreUpdated;
     public event Action<int> OnTurnChanged;
+    public event Action<int> OnGameOver;
+    public event Action OnStartGame;
+
 
     void Start()
     {
@@ -59,7 +65,6 @@ public class Client : MonoBehaviour
 
 	void Update()
     {
-
         if (connection == null)
             return;
 
@@ -81,9 +86,18 @@ public class Client : MonoBehaviour
         dispatcher.AddListener("/GridUpdated", GridUpdatedRpc, OSCUtil.INT, OSCUtil.INT, OSCUtil.INT, OSCUtil.INT);
         dispatcher.AddListener("/ScoreUpdated", ScoreUpdatedRpc, OSCUtil.INT, OSCUtil.INT);
         dispatcher.AddListener("/TurnChanged", TurnChangedRpc, OSCUtil.INT);
+        dispatcher.AddListener("/GameOver", GameOverRpc, OSCUtil.INT);
+        dispatcher.AddListener("/StartGame", StartGameRpc);
     }
 
     // ----- Incoming RPCs (events are triggered, and View classes subscribe):
+
+    void StartGameRpc(OSCMessageIn msg, IPEndPoint remote)
+    {
+        p1Model = new LocalClientModel();
+        p2Model = new LocalClientModel();
+        OnStartGame?.Invoke();
+    }
 
     void DiceRolledRpc(OSCMessageIn msg, IPEndPoint remote)
     {
@@ -99,6 +113,16 @@ public class Client : MonoBehaviour
         int col = msg.ReadInt();
         int value = msg.ReadInt();
 
+        LocalClientModel model;
+        if(player == 0)
+        {
+            model = p1Model;
+        }
+        else
+        {
+            model = p2Model;
+        }
+        model.values[row, col] = value;
         Debug.Log($"GridUpdatedRpc: {player} -> [{col},{row}] = {value}" );
         OnGridUpdated?.Invoke(player, row, col, value);
     }
@@ -116,10 +140,11 @@ public class Client : MonoBehaviour
         OnTurnChanged?.Invoke(currentPlayer);
     }
 
-    //void GameOverRpc(OSCMessageIn message, IPEndPoint remote) {
-    //	int winner = message.ReadInt();
-    //	OnGameOver?.Invoke(winner);
-    //}
+    void GameOverRpc(OSCMessageIn message, IPEndPoint remote)
+    {
+        int winner = message.ReadInt();
+        OnGameOver?.Invoke(winner);
+    }
     void PlayerInfoRpc(OSCMessageIn message, IPEndPoint remote)
 	{
 		int playerIndex = message.ReadInt();
@@ -130,6 +155,7 @@ public class Client : MonoBehaviour
 
     public void SendChooseDice(int diceIndex)
     {
+        Debug.Log("Client: Sending /ChooseDice with index" + diceIndex);
         OSCMessageOut message = new OSCMessageOut("/ChooseDice").AddInt(diceIndex);
         connection.Send(message.GetBytes());
     }
@@ -140,6 +166,11 @@ public class Client : MonoBehaviour
         connection.Send(message.GetBytes());
     }
 
+    public void SendRematchRequest()
+    {
+        OSCMessageOut msg = new OSCMessageOut("/RequestRematch");
+        connection.Send(msg.GetBytes());
+    }
 
 
 }

@@ -132,26 +132,9 @@ public class Server : MonoBehaviour
 	}
 
 	void Initialize() {
-
-        // Subscribe to game model events:
-        // (Note: we try to keep the game code independent from networking details.)
-        //board.OnActivePlayerChange += ActivePlayerChangeRpc;
-        //board.OnCellChange += CellChangeRpc;
-        //board.OnGameOver += GameOverRpc;
-
-        //model.OnChoiceReveal += RevealChoiceRpc;
-
-        // (Note: no unsubscribe needed in OnDestroy, since the server owns the private board variable.)
-
-        // Subscribe listeners for incoming messages:
-        // The (optional) list of parameter types (OSCUtil.INT) lets the dispatcher filter
-        //  messages that do not satisfy the expected signature (=parameter list):
-
-
-
         dispatcher.AddListener("/ChooseDice", ChooseDiceRpc, OSCUtil.INT);
         dispatcher.AddListener("/ChooseColumn", ChooseColumnRpc, OSCUtil.INT);
-
+        dispatcher.AddListener("/RequestRematch", RematchRpc);
 
     }
     //Server logic
@@ -228,25 +211,66 @@ public class Server : MonoBehaviour
         BroadcastGridUpdate(opponent, col);
         BroadcastScoreUpdate();
 
-        turnorder = !turnorder;
-        BroadcastTurnChange(turnorder ? 0 : 1);
+        if (CheckGameOver(add.grid))
+        {
+            int scoreP1 = p1Model.CalculateGridScore();
+            int scoreP2 = p2Model.CalculateGridScore();
+            int winner;
+            if (scoreP1 > scoreP2)
+            {
+                winner = 0;
+            }
+            else if (scoreP2 > scoreP1)
+            {
+                winner = 1;
+            }
+            else
+            {
+                winner = -1;
+            }
+            GameOverRpc(winner);
+            return;
+        }
+        else
+        {
+            turnorder = !turnorder;
+            BroadcastTurnChange(turnorder ? 0 : 1);
 
-        RollDice();
+            RollDice();
+        } 
     }
 
+    private bool CheckGameOver(int[,] grid)
+    {
+        foreach (int cell in grid)
+        {
+            if (cell == 0) return false;
+        }
+        return true;
+    }
+
+    void ResetGame()
+    {
+        p1Model = new Model(1);
+        p2Model = new Model(2);
+
+        selectedDiceP1 = -1;
+        selectedDiceP2 = -1;
+
+        turnorder = true;
+    }
 
 
     // ----- Handle incoming RPCs (called by dispatcher):
 
     void ChooseDiceRpc(OSCMessageIn msg, IPEndPoint remote)
     {
-        Log($"Server: message arrives on server: {msg.ToString()} - diceIndex");
-        int diceIndex = msg.ReadInt(); // 0 or 1
+        //Log($"Server: message arrives on server: {msg.ToString()} - diceIndex");
+        int diceIndex = msg.ReadInt();
         int player = GetPlayerID(remote);
 
         int chosenValue;
 
-        // Map index → value
         if (diceIndex == 0)
         {
             chosenValue = dice1;
@@ -256,7 +280,6 @@ public class Server : MonoBehaviour
             chosenValue = dice2;
         }
 
-        // Store per player
         if (player == 0)
         {
             selectedDiceP1 = chosenValue;
@@ -277,10 +300,22 @@ public class Server : MonoBehaviour
         HandlePlaceDice(player, col);
     }
 
+    void RematchRpc(OSCMessageIn msg, IPEndPoint remote)
+    {
+        int player = GetPlayerID(remote);
+        Log($"Player {player} requested a rematch.");
 
-	// ----- Outgoing RPCs:
-	// This RPC is called when a client joins who is a player:
-	void SendPrivateInformationCommand(int playerID, TcpNetworkConnection connection) {
+        // For now: restart immediately when ANY player requests
+        ResetGame();
+        BroadcastStartGame();
+        RollDice();
+    }
+
+
+
+    // ----- Outgoing RPCs:
+    // This RPC is called when a client joins who is a player:
+    void SendPrivateInformationCommand(int playerID, TcpNetworkConnection connection) {
 		OSCMessageOut message = new OSCMessageOut("/PlayerInfo").AddInt(playerID);
 		connection.Send(message.GetBytes()); // private message
 	}
@@ -344,7 +379,13 @@ public class Server : MonoBehaviour
 		OSCMessageOut message = new OSCMessageOut("/ActivePlayer").AddInt(player);
 		Broadcast(message.GetBytes());
 	}
-	public void GameOverRpc(int winner) {
+    void BroadcastStartGame()
+    {
+        OSCMessageOut msg = new OSCMessageOut("/StartGame");
+        Broadcast(msg.GetBytes());
+    }
+
+    public void GameOverRpc(int winner) {
 		OSCMessageOut message = new OSCMessageOut("/GameOver").AddInt(winner);
 		Broadcast(message.GetBytes());
 	}

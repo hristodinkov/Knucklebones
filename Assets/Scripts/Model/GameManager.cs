@@ -2,13 +2,10 @@ using UnityEngine;
 using System.Collections.Generic;
 using UnityEngine.InputSystem;
 
-
 public class GameManager : MonoBehaviour
 {
     [SerializeField] private View view;
     [SerializeField] private Client client;
-
-    private bool turnOrder = true;
 
     private int selectedDiceValue;
     private int diceValue1;
@@ -17,18 +14,12 @@ public class GameManager : MonoBehaviour
     private Player1ClientModel p1Client;
     private Player2ClientModel p2Client;
 
-    private Player1ViewModel p1ViewModel;
-    private Player2ViewModel p2ViewModel;
-
-    private void Start()
+    private void OnEnable()
     {
         p1Client = new Player1ClientModel();
         p2Client = new Player2ClientModel();
 
-        p1ViewModel = new Player1ViewModel(client, p1Client, view);
-        p2ViewModel = new Player2ViewModel(client, p2Client, view);
-
-        view.Initialize(client);
+        view.Initialize();
         //uiView.Initialize(client);
     }
 

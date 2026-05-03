@@ -7,14 +7,16 @@ public class View : MonoBehaviour
     [SerializeField] private GridTransform player1Grid;
     [SerializeField] private GridTransform player2Grid;
     [SerializeField] private List<Transform> rolledDiceTransform;
-    [SerializeField] private Controller controller;
+    //[SerializeField] private Controller controller;
     [SerializeField] private GameManager gameManager;
+    [SerializeField] private Client client;
 
     private int[] diceValueArray;
 
     private void Awake()
     {
         diceValueArray = new int[2];
+        client.OnStartGame += ClearBoard;
     }
 
     public void ShowRolledDice(int[] diceValues)
@@ -31,7 +33,7 @@ public class View : MonoBehaviour
         {
             int diceValue = diceValueArray[i];
             GameObject dice = Instantiate(dicePrefabs[diceValue - 1], rolledDiceTransform[i]);
-            dice.GetComponent<Selectable>().index = i + 1; 
+            dice.GetComponent<Selectable>().index = i; 
             dice.GetComponent<Selectable>().isDice = true;
         }
     }
@@ -58,20 +60,76 @@ public class View : MonoBehaviour
             client.diceObjects[row, col] = die;
         }
     }
-    private Transform GetCellTransform(LocalClientModel client, int row, int col)
+    private Transform GetCellTransform(LocalClientModel model, int row, int col)
     {
-        if (client is Player1ClientModel)
+        if (model == client.p1Model)
             return player1Grid.cols[col].rows[row];
 
         return player2Grid.cols[col].rows[row];
     }
 
-    public void Initialize(Client client)
+    public void ClearBoard()
+    {
+        foreach (Transform t in rolledDiceTransform)
+        {
+            if (t.childCount > 0)
+                Destroy(t.GetChild(0).gameObject);
+        }
+
+        ClearGrid(client.p1Model);
+        ClearGrid(client.p2Model);
+    }
+
+    private void ClearGrid(LocalClientModel model)
+    {
+        for (int r = 0; r < 3; r++)
+        {
+            for (int c = 0; c < 3; c++)
+            { 
+                if (model.diceObjects[r, c] != null)
+                {
+                    Destroy(model.diceObjects[r, c]);
+                    model.diceObjects[r, c] = null;
+                }
+                model.values[r, c] = 0;
+                ClearCell(player1Grid.cols[c].rows[r]);
+                ClearCell(player2Grid.cols[c].rows[r]);
+            }
+        }
+    }
+    private void ClearCell(Transform cell)
+    {
+        if (cell.childCount > 0)
+        {
+            Destroy(cell.GetChild(0).gameObject);
+        }
+    }
+
+
+
+    public void Initialize()
     {
         client.OnDiceRolled += (d1, d2) =>
         {
             ShowRolledDice(new int[] { d1, d2 });
         };
+        client.OnGridUpdated += (playerId, row, col, value) =>
+        {
+            if ((playerId == 0 && client.p1Model != null) || (playerId == 1 && client.p2Model != null))
+            {
+                LocalClientModel model;
+                if (playerId == 0)
+                {
+                    model = client.p1Model;
+                }
+                else
+                {
+                    model = client.p2Model;
+                }
+                RenderCell(model, row, col);
+            }
+        };
+        
     }
 
 }
