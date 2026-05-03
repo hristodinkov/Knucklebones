@@ -2040,7 +2040,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2ae3593c88144be49abed22116c4f622, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Server
-  showDebugMessages: 1
+  showDebugMessages: 0
 --- !u!4 &2043281311
 Transform:
   m_ObjectHideFlags: 0

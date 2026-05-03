@@ -31,6 +31,9 @@ public class Server : MonoBehaviour
 	private Dictionary<TcpNetworkConnection, int> playerIDs = new Dictionary<TcpNetworkConnection, int>();
     private int selectedDiceP1 =-1;
     private int selectedDiceP2 =-1;
+    private bool p1WantsRematch = false;
+    private bool p2WantsRematch = false;
+
 
     void Start()
     {
@@ -305,10 +308,25 @@ public class Server : MonoBehaviour
         int player = GetPlayerID(remote);
         Log($"Player {player} requested a rematch.");
 
-        // For now: restart immediately when ANY player requests
-        ResetGame();
-        BroadcastStartGame();
-        RollDice();
+        if (player == 0)
+        {
+            p1WantsRematch = true;
+        }
+        else
+        {
+            p2WantsRematch = true;
+        }
+            
+        if (p1WantsRematch && p2WantsRematch)
+        {
+            Log("Both players requested rematch. Restarting game...");
+            p1WantsRematch = false;
+            p2WantsRematch = false;
+
+            ResetGame();
+            BroadcastStartGame();
+            RollDice();
+        }
     }
 
 
