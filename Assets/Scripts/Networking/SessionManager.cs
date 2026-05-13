@@ -5,30 +5,19 @@ using UnityEngine;
 /// will be client, server or both (=host).
 /// </summary>
 public class SessionManager : MonoBehaviour {
-	//MoveMaker controller;
 
 	bool IsClient = false;
 	bool IsServer = false;
 
-	private void OnGUI() {
-		GUILayout.BeginArea(new Rect(300, 10, 300, 300));
-		if (!IsClient && !IsServer) {
-			StartButtons();
-		}
-		GUILayout.EndArea();
-	}
-
 	void StartButtons() {
-		if (GUILayout.Button("Host")) {
-			StartServer();
-			StartClient();
-		} 
-		if (GUILayout.Button("Client")) {
-			StartClient();
-		}
-		if (GUILayout.Button("Server")) {
-			StartServer();
-		}
+		//if (GUILayout.Button("Host")) {
+		//	//StartServer();
+		//	StartClient();
+		//} 
+		
+		//if (GUILayout.Button("Server")) {
+		//	//StartServer();
+		//}
 	}
 
 	void StartServer() {
@@ -42,7 +31,7 @@ public class SessionManager : MonoBehaviour {
 
 		IsServer = true;
 	}
-	void StartClient() {
+	public void StartClient() {
 		Debug.Log($"Starting client: enabling controller");
 
 		Client client = GetComponent<Client>();

@@ -110,7 +110,7 @@ namespace NetworkConnections {
 			}
 		}
 
-		void Update() {
+		public void Update() {
 			if (!socket.Connected) {
 				Status = ConnectionStatus.Disconnected;
 				ConnectionLog.WriteLine("NetworkConnection.Update: socket closed by remote");

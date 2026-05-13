@@ -1,5 +1,3 @@
-using Unity.VisualScripting;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -9,18 +7,20 @@ public class Selectable : MonoBehaviour
     public bool isDice = false;
     public bool isCol = false;
     [SerializeField] private Controller controller;
+    [SerializeField] private SelectedDiceVisual diceVisual;
 
     private void Start()
     {
         controller = FindAnyObjectByType<Controller>();
+        diceVisual = FindAnyObjectByType<SelectedDiceVisual>();
     }
     public void OnPointerClick()
     {
         if (isDice)
         {
             print("You selected dice on index " + index);
+            diceVisual.SetSelected(this);
             controller.ChooseDice(index);
-            
         }
         else if (isCol)
         {

@@ -10,93 +10,79 @@ public class UIView : MonoBehaviour
     private int winner;
     private bool isGameOver;
 
+    private bool isOpponentDisconnected;
+
     private int activePlayer;
+
+    [SerializeField] private TextMeshProUGUI scoreP1Text;
+    [SerializeField] private TextMeshProUGUI scoreP2Text;
+    [SerializeField] private TextMeshProUGUI turnText;
+
+    [SerializeField] private SessionManager sessionManager;
+
+    [SerializeField] private GameObject gameOverWindow;
+    [SerializeField] private TextMeshProUGUI winnerText;
+
+    [SerializeField] private GameObject opponentDisconnectedWindow;
 
     [SerializeField] private Controller controller;
     [SerializeField] private Client client;
 
-    [SerializeField] private float areaXValue= 0.02f;
-    [SerializeField] private float areaYValue= 0.02f;
-    [SerializeField] private float areaHValue= 0.6f;
-    [SerializeField] private float areaWValue= 0.25f;
-    [SerializeField] private float fontSizeValue = 0.02f;
     void Start()
     {
         client.OnStartGame += ResetUI;
         client.OnScoreUpdated += HandleScoreUpdated;
         client.OnTurnChanged += HandleTurnChanged;
         client.OnGameOver += HandleGameOver;
+        client.OnOpponentDisconnected += HandleOpponentDisconnected;
+        client.OnOpponentReconnected += HandleOpponentReconnected;
     }
 
     void HandleScoreUpdated(int s1, int s2)
     {
         scoreP1 = s1;
         scoreP2 = s2;
+        scoreP1Text.text = "Player 1: " + scoreP1;
+        scoreP2Text.text = "Player 2: " + scoreP2;
     }
 
     void HandleTurnChanged(int p)
     {
         activePlayer = p;
+        turnText.text = "Turn: Player " + (activePlayer + 1);
     }
 
     void HandleGameOver(int winner) 
     {
         isGameOver = true;
         this.winner = winner;
-        Debug.Log("Game Over! Winner: Player " + (winner + 1));
+        winnerText.text = "Player " + (winner + 1)+"wins!";
+        gameOverWindow.SetActive(true);
     }
 
-    void OnGUI()
+    void HandleOpponentDisconnected() 
     {
-        float areaX = Screen.width * areaXValue;
-        float areaY = Screen.height * areaYValue;
-        float areaW = Screen.width * areaWValue;
-        float areaH = Screen.height * areaHValue;
-
-        int fontSize = Mathf.RoundToInt(Screen.height * fontSizeValue);
-        GUIStyle labelStyle = new GUIStyle(GUI.skin.label);
-        labelStyle.fontSize = fontSize;
-
-        GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
-        buttonStyle.fontSize = fontSize;
-
-        GUILayout.BeginArea(new Rect(areaX, areaY, areaW, areaH), GUI.skin.box);
-
-        GUILayout.Space(10);
-
-        GUILayout.Label("Scores:", labelStyle);
-        GUILayout.Label("Player 2: " + scoreP2, labelStyle);
-        GUILayout.Label("Player 1: " + scoreP1, labelStyle);
-        
-
-        GUILayout.Space(10);
-
-        GUILayout.Label("Current Turn: Player " + (activePlayer + 1), labelStyle);
-        GUILayout.EndArea();
-
-        if (isGameOver)
-        {
-            GUILayout.BeginArea(new Rect(Screen.width * 0.5f, Screen.height * 0.5f, Screen.width * 0.4f, Screen.height * 0.3f), GUI.skin.box);
-            GUILayout.Label("Game Over!\n  Winner: Player " + (winner + 1), labelStyle);
-            if (GUILayout.Button("Play Again", buttonStyle))
-            {
-                controller.SendRematchRequest();
-            }
-            if (GUILayout.Button("Quit", buttonStyle))
-            {
-                Application.Quit();
-            }
-            GUILayout.EndArea();
-        }
+        opponentDisconnectedWindow.SetActive(true);
+    }
+    void HandleOpponentReconnected()
+    {
+        opponentDisconnectedWindow.SetActive(false);
     }
 
     public void ResetUI()
     {
-        isGameOver = false;
+        gameOverWindow.SetActive(false);
+        opponentDisconnectedWindow.SetActive(false);
+
         winner = -1;
+        isOpponentDisconnected = false;
+
 
         scoreP1 = 0;
         scoreP2 = 0;
+        scoreP1Text.text = "Player 1: " + scoreP1;
+        scoreP2Text.text = "Player 2: " + scoreP2;
+        turnText.text = "Turn: Player " + (activePlayer + 1);
     }
 
 }

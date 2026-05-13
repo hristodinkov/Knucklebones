@@ -3,7 +3,7 @@ using UnityEngine.InputSystem;
 
 public class CameraClickDetector : MonoBehaviour
 {
-
+    public SelectColumn selectColumn;
     // Update is called once per frame
     void Update()
     {
@@ -18,7 +18,9 @@ public class CameraClickDetector : MonoBehaviour
                 {
                     if (selectable.enabled)
                     {
+                        selectColumn.diceIschosen = false;
                         selectable.OnPointerClick();
+
                     }
                    
                 }
