@@ -4,6 +4,7 @@ using System;
 using System.ComponentModel;
 using System.Net;
 using System.Net.Sockets;
+using TMPro;
 using UnityEngine;
 
 /// <summary>
@@ -22,7 +23,7 @@ public class Client : MonoBehaviour
 
     public int serverPort = 50001;
 
-    [ReadOnly] [SerializeField]private string clientID = string.Empty;
+    [ReadOnly] [SerializeField]private string reconnectionToken = string.Empty;
 
     public event System.Action<int> OnPlayerInfoReceived;
 
@@ -34,48 +35,66 @@ public class Client : MonoBehaviour
     public event Action OnStartGame;
     public event Action OnOpponentDisconnected;
     public event Action OnOpponentReconnected;
+    public event Action<int> OnReconnectCountdown;
+    public event Action OnOpponentLeft;
+
+
+    public TextMeshProUGUI id;
+    public bool intentionalLeave = false;
 
 
     //------This section is made with MICROSOFT COPILOT------
     private void Awake()
     {
-        #if UNITY_EDITOR
-        // Editor: always random
-        clientID = Guid.NewGuid().ToString();
-        #else
-            // Build: check for command-line override
-            foreach (var arg in Environment.GetCommandLineArgs())
+    #if UNITY_EDITOR
+        reconnectionToken = Guid.NewGuid().ToString();
+    #else
+        foreach (var arg in Environment.GetCommandLineArgs())
+        {
+            if (arg.StartsWith("-token="))
             {
-                if (arg.StartsWith("-id="))
-                {
-                    clientID = arg.Substring(4);
-                    Debug.Log("Using override ClientID: " + clientID);
-                    return;
-                }
+                reconnectionToken = arg.Substring(7);
+                Debug.Log("Using override token: " + reconnectionToken);
+                return;
             }
+        }
 
-            // Build: fallback to persistent ID
-            if (PlayerPrefs.HasKey("ClientID"))
-            {
-                clientID = PlayerPrefs.GetString("ClientID");
-                Debug.Log("Loaded persistent ClientID: " + clientID);
-            }
-            else
-            {
-                clientID = Guid.NewGuid().ToString();
-                PlayerPrefs.SetString("ClientID", clientID);
-                Debug.Log("Generated new persistent ClientID: " + clientID);
-            }
-        #endif
+        if (PlayerPrefs.HasKey("ReconnectToken"))
+        {
+            reconnectionToken = PlayerPrefs.GetString("ReconnectToken");
+            Debug.Log("Loaded persistent token: " + reconnectionToken);
+        }
+        else
+        {
+            reconnectionToken = Guid.NewGuid().ToString();
+            PlayerPrefs.SetString("ReconnectToken", reconnectionToken);
+            Debug.Log("Generated new token: " + reconnectionToken);
+        }
+    #endif
     }
-//-----------------------------------------------------------------------------------
+    //-----------------------------------------------------------------------------------
 
     void OnEnable()
     {
+        id.text = reconnectionToken;
         StartConnection();
 		dispatcher = new OSCDispatcher();
 		dispatcher.ShowIncomingMessages = true;
 		Initialize();
+    }
+    void OnDisable()
+    {
+        connection?.Close();
+        connection = null;
+        intentionalLeave = false;
+    }
+    void OnApplicationQuit()
+    {
+        if (!intentionalLeave && connection != null && connection.Status == ConnectionStatus.Connected)
+        {
+            connection.Close();
+        }
+        System.Diagnostics.Process.GetCurrentProcess().Kill();
     }
 
     private void StartConnection()
@@ -86,8 +105,8 @@ public class Client : MonoBehaviour
             client.Connect(new IPEndPoint(ServerIP, serverPort));
             connection = new TcpNetworkConnection(client);
             // Better: SERVER SIDE: if the ID is empty or wrong, just send a temporary ID (no rejoin possible but eh)
-            OSCMessageOut sendCliendID = new OSCMessageOut("/SendClientID").AddString(clientID);
-            connection.Send(sendCliendID.GetBytes());
+            OSCMessageOut sendCliendToken = new OSCMessageOut("/RequestPlayerID").AddString(reconnectionToken);
+            connection.Send(sendCliendToken.GetBytes());
         }
         catch (SocketException e)
         {
@@ -116,6 +135,8 @@ public class Client : MonoBehaviour
 		}
     }
 
+
+
     //public void ConnectTo(string ip, int port)
     //{
     //    ServerIP = IPAddress.Parse(ip);
@@ -138,6 +159,8 @@ public class Client : MonoBehaviour
         dispatcher.AddListener("/StartGame", StartGameRpc);
         dispatcher.AddListener("/OpponentDisconnected", OpponentDisconnectedRpc);
         dispatcher.AddListener("/OpponentReconnected", OpponentReconnectedRpc);
+        dispatcher.AddListener("/ReconnectCountdown", ReconnectCountdownRpc, OSCUtil.INT);
+        dispatcher.AddListener("/OpponentLeft", OpponentLeftRpc);
     }
 
     // ----- Incoming RPCs (events are triggered, and View classes subscribe):
@@ -211,6 +234,16 @@ public class Client : MonoBehaviour
 		OnPlayerInfoReceived?.Invoke(playerIndex);
 	}
 
+    void ReconnectCountdownRpc(OSCMessageIn msg, IPEndPoint remote)
+    {
+        int seconds = msg.ReadInt();
+        OnReconnectCountdown?.Invoke(seconds);
+    }
+    void OpponentLeftRpc(OSCMessageIn msg, IPEndPoint remote)
+    {
+        OnOpponentLeft?.Invoke();
+    }
+
     // ----- Outgoing RPCs (called from Controller):
 
     public void SendChooseDice(int diceIndex)
@@ -234,8 +267,10 @@ public class Client : MonoBehaviour
 
     public void SendLeaveRoom()
     {
+        
         OSCMessageOut msg = new OSCMessageOut("/LeaveRoom");
         connection.Send(msg.GetBytes());
+        connection.Close();
     }
 
 

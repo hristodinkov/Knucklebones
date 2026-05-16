@@ -24,6 +24,7 @@ public class UIView : MonoBehaviour
     [SerializeField] private TextMeshProUGUI winnerText;
 
     [SerializeField] private GameObject opponentDisconnectedWindow;
+    [SerializeField] private GameObject opponentLeftWindow;
 
     [SerializeField] private Controller controller;
     [SerializeField] private Client client;
@@ -36,6 +37,7 @@ public class UIView : MonoBehaviour
         client.OnGameOver += HandleGameOver;
         client.OnOpponentDisconnected += HandleOpponentDisconnected;
         client.OnOpponentReconnected += HandleOpponentReconnected;
+        client.OnOpponentLeft += HandleOpponentLeft;
     }
 
     void HandleScoreUpdated(int s1, int s2)
@@ -69,10 +71,16 @@ public class UIView : MonoBehaviour
         opponentDisconnectedWindow.SetActive(false);
     }
 
+    void HandleOpponentLeft()
+    {
+        opponentLeftWindow.SetActive(true);
+    }
+
     public void ResetUI()
     {
         gameOverWindow.SetActive(false);
         opponentDisconnectedWindow.SetActive(false);
+        opponentLeftWindow.SetActive(false);
 
         winner = -1;
         isOpponentDisconnected = false;

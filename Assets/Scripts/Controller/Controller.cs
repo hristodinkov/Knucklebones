@@ -52,10 +52,12 @@ public class Controller : MonoBehaviour
     }
     public void LeaveMatch()
     {
+        client.intentionalLeave = true;
         client.SendLeaveRoom();
     }
     public void Quit()
     {
+        client.intentionalLeave = true;
         Application.Quit();
     }
 
