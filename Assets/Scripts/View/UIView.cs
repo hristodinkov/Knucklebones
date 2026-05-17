@@ -43,7 +43,13 @@ public class UIView : MonoBehaviour
         client.OnOpponentLeft += HandleOpponentLeft;
         client.OnReconnectCountdown += HandleReconnectCountdown;
         client.OnMoveCountdown += HandleMoveCountdown;
-        client.OnArgsUsed += HandleArgsUsed;
+#if !UNITY_EDITOR
+    if (!string.IsNullOrEmpty(client.ReconnectionToken))
+    {
+        tokenStringText.gameObject.SetActive(true);
+        tokenStringText.text = client.ReconnectionToken;
+    }
+#endif
     }
 
     private void HandleReconnectCountdown(int seconds)
@@ -96,13 +102,6 @@ public class UIView : MonoBehaviour
         gameOverWindow.SetActive(false);
 
     }
-
-    void HandleArgsUsed(string token)
-    {
-        tokenStringText.gameObject.SetActive(true);
-        tokenStringText.text = token;
-    }
-
     public void ResetUI()
     {
         gameOverWindow.SetActive(false);

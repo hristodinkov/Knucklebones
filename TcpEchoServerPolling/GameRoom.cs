@@ -42,7 +42,9 @@ namespace TcpEchoServerPolling
         private int lastSentCountdown = -1;
 
         private const float MoveTimeoutSeconds = 60f;
-        private DateTime lastMoveTime;
+        private float moveTimeRemaining = MoveTimeoutSeconds;
+        private bool moveTimerPaused = false;
+        private DateTime lastTickTime;
         private int lastSentMoveCountdown = -1;
 
         public GameRoom()
@@ -129,7 +131,7 @@ namespace TcpEchoServerPolling
                 {
                     ReconnectionTimeout(1, p2DisconnectTime, player1);
                 }
-                else if (!p1Disconnected && !p2Disconnected && gameStarted)
+                else if (!p1Disconnected && !p2Disconnected && gameStarted&& IsFull())
                 {
                     TickMoveTimer();
                 }
@@ -138,9 +140,10 @@ namespace TcpEchoServerPolling
         }
         private void TickMoveTimer()
         {
-            float elapsed = (float)(DateTime.Now - lastMoveTime).TotalSeconds;
-            float remaining = MoveTimeoutSeconds - elapsed;
-            int remainingInt = Math.Max(0, (int)Math.Ceiling(remaining));
+            if (moveTimerPaused) return;
+            moveTimeRemaining -= (float)(DateTime.Now - lastTickTime).TotalSeconds;
+            lastTickTime = DateTime.Now;
+            int remainingInt = Math.Max(0, (int)Math.Ceiling(moveTimeRemaining));
             
             if (remainingInt != lastSentMoveCountdown)
             {
@@ -149,7 +152,7 @@ namespace TcpEchoServerPolling
                 OSCMessageOut countdown = new OSCMessageOut("/MoveCountdown").AddInt(remainingInt);
                 Broadcast(countdown.GetBytes());
             }
-            if (remaining <= 0)
+            if (moveTimeRemaining <= 0)
             {
                 lastSentMoveCountdown = -1;
                 int loser = turnOrder ? 0 : 1;
@@ -204,7 +207,8 @@ namespace TcpEchoServerPolling
             forceEmpty = false;
             p1WantsRematch = false;
             p2WantsRematch = false;
-            lastMoveTime = DateTime.Now;
+            moveTimeRemaining = MoveTimeoutSeconds;
+            lastTickTime = DateTime.Now;
             lastSentMoveCountdown = -1;
 
         }
@@ -382,6 +386,7 @@ namespace TcpEchoServerPolling
             else if (index == 1 && player1 != null)
                 player1.Send(msg.GetBytes());
 
+            moveTimerPaused = true;
             if (index ==0)
             {
                 p1Disconnected = true;
@@ -491,7 +496,9 @@ namespace TcpEchoServerPolling
 
         void BroadcastTurnChange(int player)
         {
-            lastMoveTime = DateTime.Now; 
+            moveTimeRemaining = MoveTimeoutSeconds;
+            moveTimerPaused = false;
+            lastTickTime = DateTime.Now;
             lastSentMoveCountdown = -1;
             OSCMessageOut msg = new OSCMessageOut("/TurnChanged")
                 .AddInt(player);
@@ -541,6 +548,9 @@ namespace TcpEchoServerPolling
                 player2.Send(msg.GetBytes());
             else if (index == 1 && player1 != null)
                 player1.Send(msg.GetBytes());
+
+            moveTimerPaused = false; 
+            lastTickTime = DateTime.Now;
 
             SendFullState(connection);
          

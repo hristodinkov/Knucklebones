@@ -24,7 +24,6 @@ public class Client : MonoBehaviour
     public int serverPort = 50001;
 
     [ReadOnly] [SerializeField]private string reconnectionToken = string.Empty;
-    private bool isArgsUsed = false;
 
     public event System.Action<int> OnPlayerInfoReceived;
 
@@ -39,9 +38,7 @@ public class Client : MonoBehaviour
     public event Action<int> OnReconnectCountdown;
     public event Action OnOpponentLeft;
     public event Action<int> OnMoveCountdown;
-
-
-    public event Action<string> OnArgsUsed;
+    public string ReconnectionToken => reconnectionToken;
 
     public TextMeshProUGUI id;
     public bool intentionalLeave = false;
@@ -59,7 +56,7 @@ public class Client : MonoBehaviour
             {
                 reconnectionToken = arg.Substring(7);
                 Debug.Log("Using override token: " + reconnectionToken);
-                OnArgsUsed?.Invoke(reconnectionToken);
+                
                 return;
             }
         }
