@@ -58,6 +58,7 @@ public class Controller : MonoBehaviour
     public void Quit()
     {
         client.intentionalLeave = true;
+        client.SendLeaveRoom();
         Application.Quit();
     }
 

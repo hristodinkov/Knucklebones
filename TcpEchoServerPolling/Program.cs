@@ -12,7 +12,7 @@ class TcpServer {
 	static int port = 50001;
 	static List<TcpNetworkConnection> clients = new List<TcpNetworkConnection>();
 	static List<GameRoom> rooms = new List<GameRoom>();
-    static float pingInterval = 300; // ms
+    static float pingInterval = 5000; // ms
     static float lastPingTime = 0;
 
     static Dictionary<TcpNetworkConnection, GameRoom> clientsToRoomMap = new Dictionary<TcpNetworkConnection, GameRoom>();
@@ -33,37 +33,26 @@ class TcpServer {
 			// Note: there is no error handling in this server! Is it needed? If so, where?
 
 			AcceptNewClients(listener, clients);
-            //foreach (var client in clients)
-            //{
-            //    client.Available();
-            //}
-
             HandleMessages(clients);
-            foreach (var client in clients)
+
+            lastPingTime += 10;
+            if (lastPingTime > pingInterval)
             {
-
-                if (client.Status == ConnectionStatus.Connected)
+                lastPingTime = 0;
+                foreach (var users in clients)
                 {
-                    try
+                    if (users.Status == ConnectionStatus.Connected)
                     {
-                        if (lastPingTime > pingInterval)
-                        {
-                            OSCMessageOut ping = new OSCMessageOut("/Ping");
-                            client.Send(ping.GetBytes());
-                            lastPingTime = 0;
-
-                        }
-                        lastPingTime += 10;
-                    }
-                    catch
-                    {
-                        // Send() already calls Close() internally
+                        //Console.WriteLine($"Sending ping to client {users.Remote}");
+                        OSCMessageOut ping = new OSCMessageOut("/Ping");
+                        users.Send(ping.GetBytes());
                     }
                 }
             }
+            
             foreach (var room in rooms)
             {
-                room.Tick(10);
+                room.Tick();
             }
             CheckAndCleanupClients(clients);
 			CleanupRooms();
@@ -97,8 +86,6 @@ class TcpServer {
         TcpNetworkConnection connection = new TcpNetworkConnection(newClient);
         clients.Add(connection);
         Console.WriteLine($"Client connected from remote end point {newClient.Client.RemoteEndPoint}");
-        
-
     }
 
     static void AssignClientToRoom(TcpNetworkConnection connection,string token)
@@ -167,28 +154,28 @@ class TcpServer {
                 }
                 int playerIndex = room.GetPlayerIndex(client);
 
-                if (addr == "/ChooseDice")
+                switch (addr)
                 {
-                    int diceIndex = msg.ReadInt();
-                    room.HandleChooseDice(playerIndex, diceIndex);
-                }
-                else if (addr == "/ChooseColumn")
-                {
-                    int col = msg.ReadInt();
-                    room.HandleChooseColumn(playerIndex, col);
-                }
-                else if (addr == "/RequestRematch")
-                {
-                    room.HandleRematch(playerIndex);
-                }
-                else if(addr =="/LeaveRoom")
-                {
-                    GameRoom clientRoom = FindRoomOfClient(client);
-                    if (clientRoom != null)
-                    {
-                        clientRoom.HandleLeave(client);
+                    case "/ChooseDice":
+                        room.HandleChooseDice(playerIndex, msg.ReadInt());
+                        break;
+
+                    case "/ChooseColumn":
+                        room.HandleChooseColumn(playerIndex, msg.ReadInt());
+                        break;
+
+                    case "/RequestRematch":
+                        room.HandleRematch(playerIndex);
+                        break;
+
+                    case "/LeaveRoom":
+                        room.HandleLeave(client);
                         clientsToRoomMap.Remove(client);
-                    }
+                        break;
+
+                    default:
+                        Console.WriteLine($"Unknown message: {addr}");
+                        break;
                 }
 
             }
@@ -236,13 +223,9 @@ class TcpServer {
 
                 if (clientsToRoomMap.TryGetValue(client, out GameRoom room))
                 {
-                    Console.WriteLine($"Found room for client, calling HandleDisconnect");
+                    Console.WriteLine($"Found room of client, calling HandleDisconnect");
                     room.HandleDisconnect(client);
                     clientsToRoomMap.Remove(client);
-                }
-                else
-                {
-                    Console.WriteLine($"NO ROOM FOUND for disconnected client!");
                 }
                 client.Close();
                 clients.RemoveAt(i);
@@ -253,6 +236,7 @@ class TcpServer {
     {
         for (int i = rooms.Count - 1; i >= 0; i--)
         {
+            //Console.WriteLine($"Room {i}: IsEmpty={rooms[i].IsEmpty()}, p1Disc={rooms[i].p1Disconnected}, p2Disc={rooms[i].p2Disconnected}");
             if (rooms[i].IsEmpty())
             {
                 Console.WriteLine("Removing empty room");

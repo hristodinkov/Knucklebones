@@ -24,6 +24,7 @@ public class Client : MonoBehaviour
     public int serverPort = 50001;
 
     [ReadOnly] [SerializeField]private string reconnectionToken = string.Empty;
+    private bool isArgsUsed = false;
 
     public event System.Action<int> OnPlayerInfoReceived;
 
@@ -37,7 +38,10 @@ public class Client : MonoBehaviour
     public event Action OnOpponentReconnected;
     public event Action<int> OnReconnectCountdown;
     public event Action OnOpponentLeft;
+    public event Action<int> OnMoveCountdown;
 
+
+    public event Action<string> OnArgsUsed;
 
     public TextMeshProUGUI id;
     public bool intentionalLeave = false;
@@ -55,6 +59,7 @@ public class Client : MonoBehaviour
             {
                 reconnectionToken = arg.Substring(7);
                 Debug.Log("Using override token: " + reconnectionToken);
+                OnArgsUsed?.Invoke(reconnectionToken);
                 return;
             }
         }
@@ -94,7 +99,11 @@ public class Client : MonoBehaviour
         {
             connection.Close();
         }
+#if UNITY_EDITOR
+      
+#else
         System.Diagnostics.Process.GetCurrentProcess().Kill();
+#endif
     }
 
     private void StartConnection()
@@ -161,6 +170,7 @@ public class Client : MonoBehaviour
         dispatcher.AddListener("/OpponentReconnected", OpponentReconnectedRpc);
         dispatcher.AddListener("/ReconnectCountdown", ReconnectCountdownRpc, OSCUtil.INT);
         dispatcher.AddListener("/OpponentLeft", OpponentLeftRpc);
+        dispatcher.AddListener("/MoveCountdown", MoveCountdownRpc, OSCUtil.INT);
     }
 
     // ----- Incoming RPCs (events are triggered, and View classes subscribe):
@@ -237,11 +247,18 @@ public class Client : MonoBehaviour
     void ReconnectCountdownRpc(OSCMessageIn msg, IPEndPoint remote)
     {
         int seconds = msg.ReadInt();
+        Console.WriteLine("Countdown received: " + seconds);
+        Debug.Log($"Reconnect countdown: {seconds}");
         OnReconnectCountdown?.Invoke(seconds);
     }
     void OpponentLeftRpc(OSCMessageIn msg, IPEndPoint remote)
     {
         OnOpponentLeft?.Invoke();
+    }
+    void MoveCountdownRpc(OSCMessageIn msg, IPEndPoint remote)
+    {
+        int seconds = msg.ReadInt();
+        OnMoveCountdown?.Invoke(seconds);
     }
 
     // ----- Outgoing RPCs (called from Controller):

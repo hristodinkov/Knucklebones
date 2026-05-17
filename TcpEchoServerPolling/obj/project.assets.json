@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "targets": {
     "net8.0": {}
   },
@@ -14,11 +14,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\HristoDinkov\\Documents\\CMGT\\MyProjects\\KnucklebonesFork\\TcpEchoServerPolling\\TcpEchoServerPolling.csproj",
+      "projectUniqueName": "C:\\Users\\HristoDinkov\\Documents\\CMGT\\MyProjects\\KnucklebonesFork\\Knucklebones\\TcpEchoServerPolling\\TcpEchoServerPolling.csproj",
       "projectName": "TcpEchoServerPolling",
-      "projectPath": "C:\\Users\\HristoDinkov\\Documents\\CMGT\\MyProjects\\KnucklebonesFork\\TcpEchoServerPolling\\TcpEchoServerPolling.csproj",
+      "projectPath": "C:\\Users\\HristoDinkov\\Documents\\CMGT\\MyProjects\\KnucklebonesFork\\Knucklebones\\TcpEchoServerPolling\\TcpEchoServerPolling.csproj",
       "packagesPath": "C:\\Users\\HristoDinkov\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\HristoDinkov\\Documents\\CMGT\\MyProjects\\KnucklebonesFork\\TcpEchoServerPolling\\obj\\",
+      "outputPath": "C:\\Users\\HristoDinkov\\Documents\\CMGT\\MyProjects\\KnucklebonesFork\\Knucklebones\\TcpEchoServerPolling\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -52,7 +52,7 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "10.0.200"
+      "SdkAnalysisLevel": "10.0.300"
     },
     "frameworks": {
       "net8.0": {
@@ -74,7 +74,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.203/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

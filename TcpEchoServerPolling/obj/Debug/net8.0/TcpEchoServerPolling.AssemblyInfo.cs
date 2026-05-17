@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TcpEchoServerPolling")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4a0f57eabf12d69d7ea16948c93c6a8dc7a468b9")]
 [assembly: System.Reflection.AssemblyProductAttribute("TcpEchoServerPolling")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TcpEchoServerPolling")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

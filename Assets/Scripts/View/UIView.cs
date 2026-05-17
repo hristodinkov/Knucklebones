@@ -17,6 +17,9 @@ public class UIView : MonoBehaviour
     [SerializeField] private TextMeshProUGUI scoreP1Text;
     [SerializeField] private TextMeshProUGUI scoreP2Text;
     [SerializeField] private TextMeshProUGUI turnText;
+    [SerializeField] private TextMeshProUGUI timeoutReconnectText;
+    [SerializeField] private TextMeshProUGUI moveTimerText;
+    [SerializeField] private TextMeshProUGUI tokenStringText;
 
     [SerializeField] private SessionManager sessionManager;
 
@@ -38,6 +41,19 @@ public class UIView : MonoBehaviour
         client.OnOpponentDisconnected += HandleOpponentDisconnected;
         client.OnOpponentReconnected += HandleOpponentReconnected;
         client.OnOpponentLeft += HandleOpponentLeft;
+        client.OnReconnectCountdown += HandleReconnectCountdown;
+        client.OnMoveCountdown += HandleMoveCountdown;
+        client.OnArgsUsed += HandleArgsUsed;
+    }
+
+    private void HandleReconnectCountdown(int seconds)
+    {
+        timeoutReconnectText.text = "Timeout in: " + seconds + " s";
+    }
+    void HandleMoveCountdown(int seconds)
+    {
+        moveTimerText.text = "Time to move: " + seconds + "s";
+        moveTimerText.color = seconds <= 10 ? Color.red : Color.white;
     }
 
     void HandleScoreUpdated(int s1, int s2)
@@ -56,6 +72,8 @@ public class UIView : MonoBehaviour
 
     void HandleGameOver(int winner) 
     {
+        opponentDisconnectedWindow.SetActive(false);
+        opponentLeftWindow.SetActive(false);
         isGameOver = true;
         this.winner = winner;
         winnerText.text = "Player " + (winner + 1)+"wins!";
@@ -74,6 +92,15 @@ public class UIView : MonoBehaviour
     void HandleOpponentLeft()
     {
         opponentLeftWindow.SetActive(true);
+        opponentDisconnectedWindow.SetActive(false);
+        gameOverWindow.SetActive(false);
+
+    }
+
+    void HandleArgsUsed(string token)
+    {
+        tokenStringText.gameObject.SetActive(true);
+        tokenStringText.text = token;
     }
 
     public void ResetUI()
@@ -91,6 +118,8 @@ public class UIView : MonoBehaviour
         scoreP1Text.text = "Player 1: " + scoreP1;
         scoreP2Text.text = "Player 2: " + scoreP2;
         turnText.text = "Turn: Player " + (activePlayer + 1);
+        moveTimerText.color = Color.white;
+        moveTimerText.text = "Time to move: 90s";
     }
 
 }

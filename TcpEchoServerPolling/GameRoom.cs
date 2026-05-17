@@ -39,9 +39,11 @@ namespace TcpEchoServerPolling
         private bool isGameOver = false;
         public bool gameStarted = false;
 
-        private float countdownBroadcastAccumulator = 0f;
+        private int lastSentCountdown = -1;
 
-        float lastPingTime = 0; // combine this with some room.update method?
+        private const float MoveTimeoutSeconds = 60f;
+        private DateTime lastMoveTime;
+        private int lastSentMoveCountdown = -1;
 
         public GameRoom()
         {
@@ -68,9 +70,9 @@ namespace TcpEchoServerPolling
             SendPlayerInfo(connection);
 
             if (IsFull())
-            {
-                gameStarted = true;
+            {  
                 ResetGame();
+                gameStarted = true;
                 Console.WriteLine("Room full,starting game...");
                 BroadcastStartGame();
                 turnOrder = true;
@@ -95,10 +97,18 @@ namespace TcpEchoServerPolling
             bool p1Expired = !p1Disconnected || (DateTime.Now - p1DisconnectTime).TotalSeconds >= ReconnectWindowSeconds;
             bool p2Expired = !p2Disconnected || (DateTime.Now - p2DisconnectTime).TotalSeconds >= ReconnectWindowSeconds;
 
+            if (p1Disconnected && p2Disconnected)
+            {
+                p1Token = null;
+                p2Token = null;
+                return true;
+            }
+
             if (p1Expired && p2Expired)
             {
                 p1Token = null;
                 p2Token = null;
+                ResetConnectionState();
                 return true;
             }
 
@@ -107,55 +117,65 @@ namespace TcpEchoServerPolling
 
         
 
-        public void Tick(float deltaMs)
-        {
-            if(isGameOver||forceEmpty)
+        public void Tick()
+        { 
+            if (!isGameOver||!forceEmpty)
             {
                 if (p1Disconnected && !p2Disconnected)
                 {
-                    ReconnectionTimeout(deltaMs, 0);
+                    ReconnectionTimeout(0, p1DisconnectTime, player2);
                 }
                 else if (p2Disconnected && !p1Disconnected)
                 {
-                    ReconnectionTimeout(deltaMs, 1);
+                    ReconnectionTimeout(1, p2DisconnectTime, player1);
                 }
-                else
+                else if (!p1Disconnected && !p2Disconnected && gameStarted)
                 {
-                    countdownBroadcastAccumulator = 0f;
+                    TickMoveTimer();
                 }
             }
             
         }
-
-        private void ReconnectionTimeout(float deltaMs,int playerIndex)
+        private void TickMoveTimer()
         {
-            DateTime disconnectTime;
-            TcpNetworkConnection opponent;
+            float elapsed = (float)(DateTime.Now - lastMoveTime).TotalSeconds;
+            float remaining = MoveTimeoutSeconds - elapsed;
+            int remainingInt = Math.Max(0, (int)Math.Ceiling(remaining));
+            
+            if (remainingInt != lastSentMoveCountdown)
+            {
+                lastSentMoveCountdown = remainingInt;
+                //Console.WriteLine($"Sending move countdown: {remainingInt}");
+                OSCMessageOut countdown = new OSCMessageOut("/MoveCountdown").AddInt(remainingInt);
+                Broadcast(countdown.GetBytes());
+            }
+            if (remaining <= 0)
+            {
+                lastSentMoveCountdown = -1;
+                int loser = turnOrder ? 0 : 1;
+                int winner = turnOrder ? 1 : 0;
+                Console.WriteLine($"Player {loser} ran out of time. Player {winner} wins.");
+                GameOverRpc(winner);
+            }
+        }
 
-            if (playerIndex == 0)
-            {
-                disconnectTime = p1DisconnectTime;
-                opponent = player2;
-            }
-            else
-            {
-                disconnectTime = p2DisconnectTime;
-                opponent=player1;
-            }
+        private void ReconnectionTimeout(int playerIndex, DateTime disconnectTime,TcpNetworkConnection opponent)
+        {
             float elapsed = (float)(DateTime.Now - disconnectTime).TotalSeconds;
             float remaining = ReconnectWindowSeconds - elapsed;
+            int remainingInt = Math.Max(0, (int)Math.Ceiling(remaining));
 
-            countdownBroadcastAccumulator += deltaMs;
-            if (countdownBroadcastAccumulator >= 1000f) // every 1 second
+            if (remainingInt != lastSentCountdown) 
             {
-                countdownBroadcastAccumulator = 0f;
-                int remainingInt = Math.Max(0, (int)remaining);
+                lastSentCountdown = remainingInt;
+                //Console.WriteLine($"Sending countdown: {remainingInt}");
                 OSCMessageOut countdown = new OSCMessageOut("/ReconnectCountdown").AddInt(remainingInt);
                 opponent.Send(countdown.GetBytes());
             }
 
             if (remaining <= 0)
             {
+                lastSentCountdown = -1;
                 if (playerIndex == 0)
                 {
                     GameOverRpc(1);
@@ -179,12 +199,22 @@ namespace TcpEchoServerPolling
             selectedDiceP1 = -1;
             selectedDiceP2 = -1;
             turnOrder = true;
+            isGameOver = false;
+            gameStarted = false;
+            forceEmpty = false;
+            p1WantsRematch = false;
+            p2WantsRematch = false;
+            lastMoveTime = DateTime.Now;
+            lastSentMoveCountdown = -1;
+
+        }
+        public void ResetConnectionState()
+        {
+            Console.WriteLine("Reset connection has been called");
             p1Disconnected = false;
             p2Disconnected = false;
-            isGameOver = false;
-            forceEmpty = false;
-            gameStarted = false;
-
+            p1Token = null;
+            p2Token = null;
         }
         public int GetPlayerIndex(TcpNetworkConnection connection)
         {
@@ -329,6 +359,7 @@ namespace TcpEchoServerPolling
             {
                 Console.WriteLine("Room: Both players requested rematch. Restarting game...");
                 ResetGame();
+                gameStarted = true;
                 BroadcastStartGame();
                 RollDice();
             }
@@ -337,16 +368,14 @@ namespace TcpEchoServerPolling
         public void HandleDisconnect(TcpNetworkConnection connection)
         {
             int index = GetPlayerIndex(connection);
-            Console.WriteLine($"HandleDisconnect called, GetPlayerIndex returned {index}");
             if (index <0)
             {
                 return;
             }
 
             Console.WriteLine($"Room: Player {index} disconnected.");
-            Console.WriteLine($"Sending OpponentDisconnected to player {(index == 0 ? 1 : 0)}");
+            //Console.WriteLine($"Sending /OpponentDisconnected to player {(index == 0 ? 1 : 0)}");
             OSCMessageOut msg = new OSCMessageOut("/OpponentDisconnected");
-            countdownBroadcastAccumulator = 0f;
 
             if (index == 0 && player2 != null)
                 player2.Send(msg.GetBytes());
@@ -374,19 +403,16 @@ namespace TcpEchoServerPolling
             int index = GetPlayerIndex(connection);
             if (index < 0) return;
 
-            Console.WriteLine($"Player {index} intentionally left. Opponent wins.");
+            Console.WriteLine($"Player {index} intentionally left.");
 
             OSCMessageOut msg = new OSCMessageOut("/OpponentLeft");
             if (index == 0) player2?.Send(msg.GetBytes());
-            else player1.Send(msg.GetBytes());
-
-            p1Token = null;
-            p2Token = null;
-            p1Disconnected = false;
-            p2Disconnected = false;
+            else player1?.Send(msg.GetBytes());
+            ResetConnectionState();
             player1 = null;
             player2 = null;
             forceEmpty = true;
+
 
         }
 
@@ -465,6 +491,8 @@ namespace TcpEchoServerPolling
 
         void BroadcastTurnChange(int player)
         {
+            lastMoveTime = DateTime.Now; 
+            lastSentMoveCountdown = -1;
             OSCMessageOut msg = new OSCMessageOut("/TurnChanged")
                 .AddInt(player);
 
@@ -490,6 +518,7 @@ namespace TcpEchoServerPolling
 
         public void ReconnectPlayer(TcpNetworkConnection connection, int index)
         {
+            lastSentCountdown = -1;
             if (index == 0)
             {
                 player1 = connection;
@@ -514,7 +543,7 @@ namespace TcpEchoServerPolling
                 player1.Send(msg.GetBytes());
 
             SendFullState(connection);
-            countdownBroadcastAccumulator = 0f;
+         
         }
 
         public void SendFullState(TcpNetworkConnection connection)
