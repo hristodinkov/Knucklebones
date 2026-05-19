@@ -43,13 +43,12 @@ public class UIView : MonoBehaviour
         client.OnOpponentLeft += HandleOpponentLeft;
         client.OnReconnectCountdown += HandleReconnectCountdown;
         client.OnMoveCountdown += HandleMoveCountdown;
-#if !UNITY_EDITOR
-    if (!string.IsNullOrEmpty(client.ReconnectionToken))
-    {
-        tokenStringText.gameObject.SetActive(true);
-        tokenStringText.text = client.ReconnectionToken;
-    }
-#endif
+        if(client.tokenView)
+        {
+            tokenStringText.gameObject.SetActive(true);
+            tokenStringText.text = client.ReconnectionToken;
+
+        }
     }
 
     private void HandleReconnectCountdown(int seconds)
@@ -70,9 +69,9 @@ public class UIView : MonoBehaviour
         scoreP2Text.text = "Player 2: " + scoreP2;
     }
 
-    void HandleTurnChanged(int p)
+    void HandleTurnChanged(int player)
     {
-        activePlayer = p;
+        activePlayer = player;
         turnText.text = "Turn: Player " + (activePlayer + 1);
     }
 
@@ -89,6 +88,9 @@ public class UIView : MonoBehaviour
     void HandleOpponentDisconnected() 
     {
         opponentDisconnectedWindow.SetActive(true);
+        opponentLeftWindow.SetActive(false);
+        gameOverWindow.SetActive(false);
+
     }
     void HandleOpponentReconnected()
     {

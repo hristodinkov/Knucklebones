@@ -13,8 +13,9 @@ using UnityEngine;
 /// </summary>
 public class Client : MonoBehaviour
 {
-	// ----- General client things:
-	public IPAddress ServerIP = IPAddress.Loopback;
+    // ----- General client things:
+    #region Fields
+    public IPAddress ServerIP = IPAddress.Loopback;
 	TcpNetworkConnection connection;
 	OSCDispatcher dispatcher;
 
@@ -25,6 +26,15 @@ public class Client : MonoBehaviour
 
     [ReadOnly] [SerializeField]private string reconnectionToken = string.Empty;
 
+    public string ReconnectionToken => reconnectionToken;
+
+    public TextMeshProUGUI id;
+    public bool intentionalLeave = false;
+
+    public bool tokenView = false;
+    #endregion
+
+    #region Events
     public event System.Action<int> OnPlayerInfoReceived;
 
     public event Action<int, int> OnDiceRolled;
@@ -38,25 +48,22 @@ public class Client : MonoBehaviour
     public event Action<int> OnReconnectCountdown;
     public event Action OnOpponentLeft;
     public event Action<int> OnMoveCountdown;
-    public string ReconnectionToken => reconnectionToken;
 
-    public TextMeshProUGUI id;
-    public bool intentionalLeave = false;
-
+    #endregion
 
     //------This section is made with MICROSOFT COPILOT------
     private void Awake()
     {
     #if UNITY_EDITOR
         reconnectionToken = Guid.NewGuid().ToString();
-    #else
+#else
         foreach (var arg in Environment.GetCommandLineArgs())
         {
             if (arg.StartsWith("-token="))
             {
                 reconnectionToken = arg.Substring(7);
                 Debug.Log("Using override token: " + reconnectionToken);
-                
+                tokenView = true;
                 return;
             }
         }
@@ -72,7 +79,7 @@ public class Client : MonoBehaviour
             PlayerPrefs.SetString("ReconnectToken", reconnectionToken);
             Debug.Log("Generated new token: " + reconnectionToken);
         }
-    #endif
+#endif
     }
     //-----------------------------------------------------------------------------------
 
@@ -141,16 +148,6 @@ public class Client : MonoBehaviour
 		}
     }
 
-
-
-    //public void ConnectTo(string ip, int port)
-    //{
-    //    ServerIP = IPAddress.Parse(ip);
-    //    serverPort = port;
-    //    Debug.Log($"Connecting to {ip}:{port}");
-    //    StartConnection();
-    //}
-
     void Initialize() {
         // The (optional) list of parameter types (OSCUtil.INT) lets the dispatcher filter
         //  messages that do not satisfy the expected signature (=parameter list): 
@@ -171,7 +168,7 @@ public class Client : MonoBehaviour
     }
 
     // ----- Incoming RPCs (events are triggered, and View classes subscribe):
-
+    #region Incoming RPCs
     void StartGameRpc(OSCMessageIn msg, IPEndPoint remote)
     {
         p1Model = new LocalClientModel();
@@ -257,9 +254,11 @@ public class Client : MonoBehaviour
         int seconds = msg.ReadInt();
         OnMoveCountdown?.Invoke(seconds);
     }
+    #endregion
 
     // ----- Outgoing RPCs (called from Controller):
 
+    #region Outgoing RPCs
     public void SendChooseDice(int diceIndex)
     {
         Debug.Log("Client: Sending /ChooseDice with index" + diceIndex);
@@ -286,6 +285,6 @@ public class Client : MonoBehaviour
         connection.Send(msg.GetBytes());
         connection.Close();
     }
-
+    #endregion
 
 }
