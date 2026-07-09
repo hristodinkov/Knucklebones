@@ -81,7 +81,14 @@ public class UIView : MonoBehaviour
         opponentLeftWindow.SetActive(false);
         isGameOver = true;
         this.winner = winner;
-        winnerText.text = "Player " + (winner + 1)+"wins!";
+        if(winner ==-1)
+        {
+            winnerText.text = "It's a draw!";
+        }
+        else
+        {
+            winnerText.text = "Player " + (winner + 1) + "wins!";
+        }   
         gameOverWindow.SetActive(true);
     }
 

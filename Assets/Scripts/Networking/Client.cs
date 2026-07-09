@@ -117,7 +117,6 @@ public class Client : MonoBehaviour
         {
             client.Connect(new IPEndPoint(ServerIP, serverPort));
             connection = new TcpNetworkConnection(client);
-            // Better: SERVER SIDE: if the ID is empty or wrong, just send a temporary ID (no rejoin possible but eh)
             OSCMessageOut sendCliendToken = new OSCMessageOut("/RequestPlayerID").AddString(reconnectionToken);
             connection.Send(sendCliendToken.GetBytes());
         }

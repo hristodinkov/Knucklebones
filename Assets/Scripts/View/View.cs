@@ -105,31 +105,34 @@ public class View : MonoBehaviour
         }
     }
 
-
-
     public void Initialize()
     {
-        client.OnDiceRolled += (d1, d2) =>
-        {
-            ShowRolledDice(new int[] { d1, d2 });
-        };
-        client.OnGridUpdated += (playerId, row, col, value) =>
-        {
-            if ((playerId == 0 && client.p1Model != null) || (playerId == 1 && client.p2Model != null))
-            {
-                LocalClientModel model;
-                if (playerId == 0)
-                {
-                    model = client.p1Model;
-                }
-                else
-                {
-                    model = client.p2Model;
-                }
-                RenderCell(model, row, col);
-            }
-        };
-        
+        client.OnDiceRolled += HandleDiceRolled;
+        client.OnGridUpdated += HandleGridUpdated;
     }
+
+    private void HandleDiceRolled(int d1, int d2)
+    {
+        ShowRolledDice(new int[] { d1, d2 });
+    }
+
+    private void HandleGridUpdated(int playerId, int row, int col, int value)
+    {
+        LocalClientModel model;
+        if(playerId == 0)
+        {
+            model = client.p1Model;
+        }
+        else
+        {
+            model = client.p2Model;
+        }
+
+        if (model == null)
+            return;
+
+        RenderCell(model, row, col);
+    }
+
 
 }
