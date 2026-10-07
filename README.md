@@ -3,7 +3,7 @@
 A two-player, turn-based dice game built in Unity with a **server-authoritative multiplayer** architecture. The project follows the **MVC (Model-View-Controller)** pattern, adapted for a client-server setup.  Each player has a 3x3 grid. On your turn, two dice are rolled, you pick one and place it in a column. Matching dice in a column multiply your score, and placing a die destroys your opponent's dice of the same value in that column. The game runs on a standalone **C# console server** that handles rooms, turn order, validation, timers and reconnection, while the Unity client only sends choices and renders what the server tells it. All communication uses **OSC (Open Sound Control) messages over TCP**, and game traffic is limited to plain integers (dice values, rows, columns, scores).
 
 ## Preview
-<img src="Pictures/gameplay.gif" width="600" height="600">
+[![Gameplay video](preview.png)]([https://www.youtube.com/watch?v=YOUR_VIDEO_ID](https://youtu.be/gObpI6FQbgk))
 
 ## Game Rules
 
