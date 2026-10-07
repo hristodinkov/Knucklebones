@@ -28,7 +28,6 @@ class TcpServer {
         Console.WriteLine("Press Q to stop the server");
 
 		while (true) {
-			// Note: there is no error handling in this server! Is it needed? If so, where?
 
 			AcceptNewClients(listener, clients);
             HandleMessages(clients);
